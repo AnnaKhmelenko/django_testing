@@ -80,11 +80,8 @@ class TestNoteLogic(TestBase):
 
     def test_author_can_edit_note(self):
         """Автор может редактировать свои заметки."""
-        edit_data = {
-            'title': 'Новый заголовок',
-            'text': 'Новый текст',
-            'slug': self.note.slug
-        }
+        self.new_note_data['slug'] = self.note.slug
+        edit_data = self.new_note_data
         url = reverse('notes:edit', args=(self.note.slug,))
         response = self.author_client.post(url, data=edit_data)
         updated_note = Note.objects.get(pk=self.note.pk)
@@ -95,6 +92,7 @@ class TestNoteLogic(TestBase):
         self.assertEqual(updated_note.author, self.author)
 
     def test_author_can_delete_note(self):
+        """Автор может удалить свою заметку."""
         url = reverse('notes:delete', args=(self.note.slug,))
         response = self.author_client.post(url)
         self.assertRedirects(response, reverse('notes:success'))
@@ -103,11 +101,7 @@ class TestNoteLogic(TestBase):
     def test_reader_cannot_edit_foreign_note(self):
         """Пользователь не может редактировать чужие заметки."""
         old_note = self.note
-        edit_data = {
-            'title': 'Новый заголовок',
-            'text': 'Новый текст',
-            'slug': self.note.slug
-        }
+        edit_data = self.new_note_data
         url = reverse('notes:edit', args=(self.note.slug,))
         response = self.reader_client.post(url, data=edit_data)
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)

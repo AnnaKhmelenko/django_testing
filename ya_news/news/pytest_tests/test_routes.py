@@ -2,12 +2,10 @@ from http import HTTPStatus
 
 import pytest
 from pytest_lazyfixture import lazy_fixture
+from django.test import TestCase
 
-# Доступ к БД для всех тестов модуля
 pytestmark = pytest.mark.django_db
 
-
-# Константы URL-фикстур
 URL_HOME = lazy_fixture('home_url')
 URL_DETAIL = lazy_fixture('detail_url')
 URL_LOGIN = lazy_fixture('login_url')
@@ -32,26 +30,23 @@ def test_pages_availability_for_anonymous(client, url, expected_status):
     assert response.status_code == expected_status
 
 
-def test_author_can_access_edit_and_delete(
-        author_client, edit_url, delete_url
-):
-    for url in [edit_url, delete_url]:
-        response = author_client.get(url)
-        assert response.status_code == HTTPStatus.OK
+@pytest.mark.parametrize('url', [lazy_fixture('edit_url'),
+                                 lazy_fixture('delete_url')])
+def test_author_can_access_edit_and_delete(author_client, url):
+    response = author_client.get(url)
+    assert response.status_code == HTTPStatus.OK
 
 
-def test_anonymous_redirected_to_login(
-        client, edit_url, delete_url, login_url
-):
-    for url in [edit_url, delete_url]:
-        response = client.get(url, follow=False)
-        assert response.status_code == HTTPStatus.FOUND
-        assert response.url.startswith(login_url)
-        assert f'next={url}' in response.url
+@pytest.mark.parametrize('url', [lazy_fixture('edit_url'),
+                                 lazy_fixture('delete_url')])
+def test_anonymous_redirected_to_login(client, url, login_url):
+    response = client.get(url, follow=True)
+    # Создаем экземпляр TestCase, чтобы вызвать assertRedirects
+    TestCase().assertRedirects(response, f"{login_url}?next={url}")
 
 
-def test_reader_cannot_edit_or_delete_foreign_comment(
-        reader_client, edit_url, delete_url):
-    for url in [edit_url, delete_url]:
-        response = reader_client.get(url)
-        assert response.status_code == HTTPStatus.NOT_FOUND
+@pytest.mark.parametrize('url', [lazy_fixture('edit_url'),
+                                 lazy_fixture('delete_url')])
+def test_reader_cannot_edit_or_delete_foreign_comment(reader_client, url):
+    response = reader_client.get(url)
+    assert response.status_code == HTTPStatus.NOT_FOUND
