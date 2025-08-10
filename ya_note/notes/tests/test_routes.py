@@ -22,12 +22,16 @@ class TestRoutes(TestCase):
             author=cls.author
         )
 
+        # Вынесем ссылки для тестов в атрибуты класса
+        cls.login_url = reverse('users:login')
+        cls.signup_url = reverse('users:signup')
+        cls.logout_url = reverse('users:logout')
+
     def test_pages_availability_for_anonymous_user(self):
         """Страницы регистрации, входа доступны анонимному пользователю."""
-        # Вынесем urls в константы для удобства
         urls = (
-            reverse('users:login'),
-            reverse('users:signup'),
+            self.login_url,
+            self.signup_url,
         )
         for url in urls:
             with self.subTest(url=url):
@@ -36,15 +40,14 @@ class TestRoutes(TestCase):
 
     def test_logout_behavior(self):
         """Проверка поведения logout."""
-        # Удаляем проверку GET запроса на logout, как просили
-        # POST запрос без аутентификации
-        response = self.client.post(reverse('users:logout'))
-        self.assertEqual(response.status_code, HTTPStatus.OK)
-
-        # POST запрос с аутентификацией
-        self.client.force_login(self.author)
-        response = self.client.post(reverse('users:logout'))
-        self.assertEqual(response.status_code, HTTPStatus.OK)
+        for user in (None, self.author):
+            if user:
+                self.client.force_login(user)
+            else:
+                self.client.logout()
+            with self.subTest(user=user.username if user else 'anonymous'):
+                response = self.client.post(self.logout_url)
+                self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_pages_availability_for_auth_user(self):
         """Страницы заметок доступны аутентифицированному пользователю."""

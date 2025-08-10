@@ -1,36 +1,8 @@
 from http import HTTPStatus
-
-from django.test import TestCase
 from django.urls import reverse
-from django.contrib.auth import get_user_model
 
-from notes.models import Note
 from notes.forms import NoteForm
-
-
-User = get_user_model()
-
-
-class TestBase(TestCase):
-    """Базовый класс для тестов с общими фикстурами."""
-
-    @classmethod
-    def setUpTestData(cls):
-        cls.author = User.objects.create(username='Автор')
-        cls.reader = User.objects.create(username='Другой пользователь')
-
-        cls.author_note = Note.objects.create(
-            title='Заголовок автора',
-            text='Текст заметки автора',
-            slug='author-note',
-            author=cls.author
-        )
-
-        cls.author_client = cls.client_class()
-        cls.author_client.force_login(cls.author)
-
-        cls.reader_client = cls.client_class()
-        cls.reader_client.force_login(cls.reader)
+from .base_test import TestBase
 
 
 class TestNotesContent(TestBase):
@@ -38,28 +10,21 @@ class TestNotesContent(TestBase):
 
     def test_notes_in_object_list(self):
         """Проверка отображения заметок в списке."""
-        # Создаем заметку для читателя
-        reader_note = Note.objects.create(
-            title='Заголовок читателя',
-            text='Текст заметки читателя',
-            slug='reader-note',
-            author=self.reader
-        )
-
+        # В каждом кортеже два элемента: клиент и ожидаемое значение
+        # для выражения "<заметка> in object_list".
         test_cases = [
-            (self.author_client, self.author_note, reader_note),
-            (self.reader_client, reader_note, self.author_note),
+            (self.author_client, True),   # автор видит свою заметку
+            (self.reader_client, False),  # читатель не видит чужую заметку
         ]
 
         url = reverse('notes:list')
 
-        for client, own_note, others_note in test_cases:
-            with self.subTest(client=client, own_note=own_note):
+        for client, expected in test_cases:
+            with self.subTest(client=client):
                 response = client.get(url)
                 self.assertEqual(response.status_code, HTTPStatus.OK)
                 object_list = response.context['object_list']
-                self.assertIn(own_note, object_list)
-                self.assertNotIn(others_note, object_list)
+                self.assertIs(self.author_note in object_list, expected)
 
     def test_forms_in_create_and_edit_pages(self):
         """Проверка формы на страницах создания и редактирования."""

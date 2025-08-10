@@ -50,7 +50,8 @@ def test_anonymous_redirected_to_login(
         assert f'next={url}' in response.url
 
 
-def test_reader_cannot_edit_or_delete_foreign_comment(reader_client, comment):
-    for url in [URL_EDIT, URL_DELETE]:
+def test_reader_cannot_edit_or_delete_foreign_comment(
+        reader_client, edit_url, delete_url):
+    for url in [edit_url, delete_url]:
         response = reader_client.get(url)
         assert response.status_code == HTTPStatus.NOT_FOUND

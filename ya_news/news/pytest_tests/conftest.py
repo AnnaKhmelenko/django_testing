@@ -10,6 +10,7 @@ from django.urls import reverse
 
 # Локальные импорты
 from news.models import News, Comment
+from news.forms import BAD_WORDS
 
 
 # Фикстуры для новостей
@@ -89,7 +90,6 @@ def comment_data():
 
 @pytest.fixture
 def bad_comment_data():
-    from news.forms import BAD_WORDS
     return {'text': f'Какой-то текст, {BAD_WORDS[0]}, еще текст'}
 
 
